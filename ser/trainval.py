@@ -1,8 +1,17 @@
 import torch
 import torch.nn.functional as F
+import os
 
 
-def train(main_model, epochs, training_dataloader, device, optimizer):
+def train(
+    main_model,
+    epochs,
+    training_dataloader,
+    validation_dataloader,
+    device,
+    optimizer,
+    directory,
+):
     for epoch in range(epochs):
         for i, (images, labels) in enumerate(training_dataloader):
             images, labels = images.to(device), labels.to(device)
@@ -16,10 +25,11 @@ def train(main_model, epochs, training_dataloader, device, optimizer):
                 f"Train Epoch: {epoch} | Batch: {i}/{len(training_dataloader)} "
                 f"| Loss: {loss.item():.4f}"
             )
-    return
+        validate(main_model, validation_dataloader, device, epoch, directory)
 
 
-def validate(main_model, validation_dataloader, device):
+def validate(main_model, validation_dataloader, device, epoch, directory):
+    best_scores = {"accuracy": 0, "epoch": 0}
     val_loss = 0
     correct = 0
     with torch.no_grad():
@@ -34,4 +44,12 @@ def validate(main_model, validation_dataloader, device):
         val_acc = correct / len(validation_dataloader.dataset)
 
         print(f"Validation: Avg Loss: {val_loss:.4f} | Accuracy: {val_acc}")
+
+        if val_acc >= best_scores["accuracy"]:
+            best_scores["accuracy"] = val_acc
+            best_scores["epoch"] = epoch
+            torch.save(
+                main_model.cpu().state_dict(), os.path.join(directory, "model.pt")
+            )
+
     return
